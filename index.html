@@ -1,0 +1,548 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#080b18">
+  <meta name="description" content="CPS Pulse: un test de clicks por segundo premium, rápido y preciso.">
+  <title>CPS Pulse — Clicks Per Second</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="theme-dark">
+  <!-- Sprite de iconos reutilizable. El diseño visual se controla desde style.css. -->
+  <svg class="icon-sprite" aria-hidden="true" focusable="false" hidden>
+    <symbol id="icon-bolt" viewBox="0 0 24 24">
+      <path d="M13 2 3 14h8l-1 8 11-14h-8z"></path>
+    </symbol>
+    <symbol id="icon-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"></path>
+    </symbol>
+    <symbol id="icon-moon" viewBox="0 0 24 24">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+    </symbol>
+    <symbol id="icon-volume" viewBox="0 0 24 24">
+      <path d="M11 5 6 9H2v6h4l5 4zM15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+    </symbol>
+    <symbol id="icon-volume-off" viewBox="0 0 24 24">
+      <path d="M11 5 6 9H2v6h4l5 4zM23 9l-6 6M17 9l6 6"></path>
+    </symbol>
+    <symbol id="icon-settings" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="3"></circle>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06-2 2-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V20h-3v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06-2-2 .06-.06A1.65 1.65 0 0 0 7.4 15a1.65 1.65 0 0 0-1.51-1H5.8v-3h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82L7 8.12l2-2 .06.06A1.65 1.65 0 0 0 10.88 6a1.65 1.65 0 0 0 1-1.51V4.4h3v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06 2 2-.06.06A1.65 1.65 0 0 0 19.4 9.5a1.65 1.65 0 0 0 1.51 1H21v3h-.09a1.65 1.65 0 0 0-1.51 1.5z"></path>
+    </symbol>
+    <symbol id="icon-expand" viewBox="0 0 24 24">
+      <path d="M8 3H3v5M3 3l6 6M16 3h5v5M21 3l-6 6M8 21H3v-5M3 21l6-6M16 21h5v-5M21 21l-6-6"></path>
+    </symbol>
+    <symbol id="icon-play" viewBox="0 0 24 24">
+      <path d="m8 5 11 7-11 7z"></path>
+    </symbol>
+    <symbol id="icon-restart" viewBox="0 0 24 24">
+      <path d="M3 12a9 9 0 1 0 3-6.7M3 4v5h5"></path>
+    </symbol>
+    <symbol id="icon-stop" viewBox="0 0 24 24">
+      <rect x="6" y="6" width="12" height="12" rx="1"></rect>
+    </symbol>
+    <symbol id="icon-share" viewBox="0 0 24 24">
+      <circle cx="18" cy="5" r="3"></circle>
+      <circle cx="6" cy="12" r="3"></circle>
+      <circle cx="18" cy="19" r="3"></circle>
+      <path d="m8.59 13.51 6.83 3.98M15.41 6.51 8.59 10.49"></path>
+    </symbol>
+    <symbol id="icon-copy" viewBox="0 0 24 24">
+      <rect x="9" y="9" width="11" height="11" rx="2"></rect>
+      <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+    </symbol>
+    <symbol id="icon-trophy" viewBox="0 0 24 24">
+      <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0zM5 5H3v2a4 4 0 0 0 4 4M19 5h2v2a4 4 0 0 1-4 4"></path>
+    </symbol>
+    <symbol id="icon-chart" viewBox="0 0 24 24">
+      <path d="M3 3v18h18M7 16l4-5 3 3 5-7"></path>
+    </symbol>
+    <symbol id="icon-clock" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="9"></circle>
+      <path d="M12 7v5l3 2"></path>
+    </symbol>
+    <symbol id="icon-keyboard" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+      <path d="M7 9h.01M11 9h.01M15 9h.01M7 13h.01M11 13h.01M15 13h.01M8 16h8"></path>
+    </symbol>
+    <symbol id="icon-close" viewBox="0 0 24 24">
+      <path d="M18 6 6 18M6 6l12 12"></path>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6"></path>
+    </symbol>
+    <symbol id="icon-chevron" viewBox="0 0 24 24">
+      <path d="m9 18 6-6-6-6"></path>
+    </symbol>
+    <symbol id="icon-sliders" viewBox="0 0 24 24">
+      <path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"></path>
+    </symbol>
+  </svg>
+
+  <div class="app-shell" id="app">
+    <!-- Capas decorativas para luces, partículas y parallax controlados por CSS/JS. -->
+    <div class="ambient-background" aria-hidden="true">
+      <span class="ambient-orb ambient-orb--one"></span>
+      <span class="ambient-orb ambient-orb--two"></span>
+      <span class="ambient-orb ambient-orb--three"></span>
+      <span class="ambient-grid"></span>
+      <div class="particle-field" id="particleField"></div>
+      <div class="cursor-glow" id="cursorGlow"></div>
+    </div>
+
+    <div class="app-loader" id="appLoader" role="status" aria-live="polite" aria-label="Cargando CPS Pulse">
+      <div class="loader-mark" aria-hidden="true">
+        <svg class="icon icon--bolt" viewBox="0 0 24 24"><use href="#icon-bolt"></use></svg>
+      </div>
+      <p class="loader-title">CPS <span>Pulse</span></p>
+      <div class="loader-track" aria-hidden="true"><span class="loader-progress"></span></div>
+      <p class="loader-message" id="loaderMessage">Preparando tu arena de velocidad…</p>
+    </div>
+
+    <section class="welcome-screen" id="welcomeScreen" aria-labelledby="welcomeTitle" hidden>
+      <div class="welcome-card glass-card">
+        <div class="welcome-emblem" aria-hidden="true">
+          <span class="emblem-ring"></span>
+          <svg class="icon icon--bolt" viewBox="0 0 24 24"><use href="#icon-bolt"></use></svg>
+        </div>
+        <p class="eyebrow" data-i18n="welcome.eyebrow">PRECISIÓN · VELOCIDAD · RITMO</p>
+        <h1 id="welcomeTitle">Tu pulso empieza <span>aquí.</span></h1>
+        <p class="welcome-copy" data-i18n="welcome.copy">Mide tus clicks por segundo y supera tu mejor marca en una experiencia hecha para la velocidad.</p>
+        <div class="welcome-features" aria-label="Características del test">
+          <span><svg class="icon" viewBox="0 0 24 24"><use href="#icon-clock"></use></svg><span data-i18n="welcome.featureOne">7 duraciones</span></span>
+          <span><svg class="icon" viewBox="0 0 24 24"><use href="#icon-chart"></use></svg><span data-i18n="welcome.featureTwo">Métricas en vivo</span></span>
+          <span><svg class="icon" viewBox="0 0 24 24"><use href="#icon-trophy"></use></svg><span data-i18n="welcome.featureThree">Récords guardados</span></span>
+        </div>
+        <button class="button button--primary button--large" id="welcomeEnter" type="button">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-play"></use></svg>
+          <span data-i18n="welcome.enter">Entrar al test</span>
+        </button>
+        <p class="welcome-note" data-i18n="welcome.note">También puedes pulsar <kbd>Enter</kbd></p>
+      </div>
+    </section>
+
+    <header class="topbar" id="siteHeader">
+      <a class="brand" href="#mainContent" aria-label="CPS Pulse, ir al contenido principal">
+        <span class="brand-mark" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><use href="#icon-bolt"></use></svg></span>
+        <span class="brand-name">CPS <strong>Pulse</strong></span>
+      </a>
+
+      <nav class="topbar-actions" aria-label="Controles de la aplicación">
+        <label class="language-control" for="languageSelect">
+          <span class="sr-only" data-i18n="header.language">Idioma</span>
+          <select id="languageSelect" name="language" aria-label="Seleccionar idioma">
+            <option value="es">ES</option>
+            <option value="en">EN</option>
+          </select>
+        </label>
+        <button class="icon-button tooltip" id="themeBtn" type="button" aria-label="Cambiar a tema claro" aria-pressed="false" data-tooltip="Cambiar tema">
+          <svg class="icon icon--moon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-moon"></use></svg>
+          <svg class="icon icon--sun" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sun"></use></svg>
+        </button>
+        <button class="icon-button tooltip" id="soundBtn" type="button" aria-label="Activar sonido" aria-pressed="false" data-tooltip="Activar sonido">
+          <svg class="icon icon--sound-on" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-volume"></use></svg>
+          <svg class="icon icon--sound-off" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-volume-off"></use></svg>
+        </button>
+        <button class="icon-button tooltip desktop-only" id="fullscreenBtn" type="button" aria-label="Activar pantalla completa" data-tooltip="Pantalla completa">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-expand"></use></svg>
+        </button>
+        <button class="icon-button tooltip" id="settingsBtn" type="button" aria-label="Abrir configuración" data-tooltip="Configuración">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-settings"></use></svg>
+        </button>
+      </nav>
+    </header>
+
+    <main id="mainContent" tabindex="-1">
+      <section class="test-dashboard" aria-labelledby="dashboardTitle">
+        <div class="dashboard-heading reveal reveal--up">
+          <div>
+            <p class="eyebrow" data-i18n="dashboard.eyebrow">ENTRENA TU VELOCIDAD</p>
+            <h1 id="dashboardTitle" data-i18n="dashboard.title">Click. <span>Rompe tu límite.</span></h1>
+          </div>
+          <button class="keyboard-shortcuts tooltip" id="keyboardHelpButton" type="button" data-tooltip="Atajos de teclado" aria-label="Ver atajos de teclado">
+            <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-keyboard"></use></svg>
+            <span><kbd>Espacio</kbd> <span data-i18n="dashboard.toStart">para empezar</span></span>
+          </button>
+        </div>
+
+        <section class="test-configuration glass-card reveal reveal--up" aria-labelledby="durationTitle">
+          <div class="configuration-label">
+            <div>
+              <p class="section-kicker" data-i18n="duration.kicker">CONFIGURACIÓN</p>
+              <h2 id="durationTitle" data-i18n="duration.title">Elige tu duración</h2>
+            </div>
+            <span class="selected-duration" id="durationSelect" aria-live="polite">5 <small>seg</small></span>
+          </div>
+          <div class="duration-selector" id="durationOptions" role="group" aria-label="Duración del test">
+            <button class="duration-option" type="button" data-duration="1" aria-pressed="false"><strong>1</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option is-selected" type="button" data-duration="5" aria-pressed="true"><strong>5</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option" type="button" data-duration="10" aria-pressed="false"><strong>10</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option" type="button" data-duration="15" aria-pressed="false"><strong>15</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option" type="button" data-duration="30" aria-pressed="false"><strong>30</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option" type="button" data-duration="60" aria-pressed="false"><strong>60</strong><span data-i18n="duration.seconds">seg</span></button>
+            <button class="duration-option" type="button" data-duration="100" aria-pressed="false"><strong>100</strong><span data-i18n="duration.seconds">seg</span></button>
+          </div>
+        </section>
+
+        <div class="test-layout">
+          <section class="arena-panel glass-card reveal reveal--left" aria-labelledby="arenaTitle">
+            <div class="arena-header">
+              <div class="arena-status">
+                <span class="status-dot" id="testStatusDot" aria-hidden="true"></span>
+                <p id="testStatus" role="status" aria-live="polite" data-i18n="status.ready">Listo para comenzar</p>
+              </div>
+              <div class="timer-block" aria-label="Tiempo restante">
+                <span class="timer-label" data-i18n="timer.label">TIEMPO RESTANTE</span>
+                <output class="timer-value odometer-value" id="timeRemaining" aria-live="off">05.00</output>
+              </div>
+            </div>
+
+            <div class="progress-wrap">
+              <div class="progress-track" id="testProgress" role="progressbar" aria-label="Progreso del test" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+                <span class="progress-fill" id="progressFill"></span>
+                <span class="progress-glow" aria-hidden="true"></span>
+              </div>
+              <div class="progress-captions" aria-hidden="true"><span>0%</span><span>100%</span></div>
+            </div>
+
+            <div class="click-stage" id="clickStage">
+              <button class="click-pad" id="clickArea" type="button" disabled aria-describedby="clickPadHelp" aria-label="Área de clic. Pulsa comenzar para activarla.">
+                <span class="click-pad__aurora" aria-hidden="true"></span>
+                <span class="click-pad__ring click-pad__ring--outer" aria-hidden="true"></span>
+                <span class="click-pad__ring click-pad__ring--inner" aria-hidden="true"></span>
+                <span class="click-pad__content">
+                  <span class="click-pad__eyebrow" id="clickPadStatus" data-i18n="pad.waiting">EN ESPERA</span>
+                  <strong class="click-pad__count odometer-value" id="clickCount">0</strong>
+                  <span class="click-pad__label" data-i18n="pad.clicks">CLICKS</span>
+                </span>
+                <span class="click-pad__hint" id="clickPadHint" data-i18n="pad.hint">Pulsa comenzar</span>
+              </button>
+              <p class="sr-only" id="clickPadHelp" data-i18n="pad.help">Cuando el test esté activo, haz clic o toca esta zona tan rápido como puedas.</p>
+              <div class="click-effects" id="clickEffects" aria-hidden="true"></div>
+            </div>
+
+            <div class="run-controls" aria-label="Controles del test">
+              <button class="button button--primary" id="startBtn" type="button">
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-play"></use></svg>
+                <span data-i18n="controls.start">Comenzar</span>
+              </button>
+              <button class="button button--secondary" id="restartBtn" type="button" disabled>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-restart"></use></svg>
+                <span data-i18n="controls.restart">Reiniciar</span>
+              </button>
+              <button class="button button--ghost" id="stopBtn" type="button" disabled>
+                <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-stop"></use></svg>
+                <span data-i18n="controls.stop">Detener</span>
+              </button>
+            </div>
+          </section>
+
+          <aside class="metrics-panel reveal reveal--right" aria-label="Estadísticas en tiempo real">
+            <section class="primary-metric glass-card">
+              <div class="metric-heading">
+                <span class="metric-icon metric-icon--pulse" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><use href="#icon-bolt"></use></svg></span>
+                <span class="metric-label" data-i18n="stats.currentCps">CPS ACTUAL</span>
+              </div>
+              <output class="primary-metric__value odometer-value" id="currentCps" aria-live="polite">0.00</output>
+              <p class="metric-subtext"><span id="currentCpsTrend">—</span> <span data-i18n="stats.clicksPerSecond">clicks por segundo</span></p>
+            </section>
+
+            <section class="stats-grid" aria-label="Métricas del test">
+              <article class="stat-card glass-card">
+                <span class="stat-card__label" data-i18n="stats.elapsed">TRANSCURRIDO</span>
+                <output class="stat-card__value odometer-value" id="elapsedTime">00.00</output>
+                <span class="stat-card__unit" data-i18n="stats.seconds">segundos</span>
+              </article>
+              <article class="stat-card glass-card">
+                <span class="stat-card__label" data-i18n="stats.average">CPS PROMEDIO</span>
+                <output class="stat-card__value odometer-value" id="averageCps">0.00</output>
+                <span class="stat-card__unit" data-i18n="stats.averageUnit">ritmo global</span>
+              </article>
+              <article class="stat-card glass-card">
+                <span class="stat-card__label" data-i18n="stats.peak">CPS MÁXIMO</span>
+                <output class="stat-card__value odometer-value" id="maxCps">0.00</output>
+                <span class="stat-card__unit" data-i18n="stats.peakUnit">pico instantáneo</span>
+              </article>
+              <article class="stat-card glass-card stat-card--record">
+                <span class="stat-card__label"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-trophy"></use></svg><span data-i18n="stats.record">RÉCORD</span></span>
+                <output class="stat-card__value odometer-value" id="historicRecord">0.00</output>
+                <span class="stat-card__unit" data-i18n="stats.recordUnit">mejor histórico</span>
+              </article>
+            </section>
+          </aside>
+        </div>
+
+        <section class="insights-grid" aria-label="Análisis del rendimiento">
+          <article class="chart-card glass-card reveal reveal--up" aria-labelledby="chartTitle">
+            <header class="card-header">
+              <div>
+                <p class="section-kicker" data-i18n="chart.kicker">RITMO EN VIVO</p>
+                <h2 id="chartTitle" data-i18n="chart.title">Evolución del CPS</h2>
+              </div>
+              <div class="chart-legend" aria-label="Leyenda del gráfico">
+                <span><i class="legend-dot legend-dot--cps" aria-hidden="true"></i><span data-i18n="chart.legend">CPS</span></span>
+              </div>
+            </header>
+            <div class="chart-wrap" id="chartWrap">
+              <canvas id="cpsChart" width="760" height="250" aria-label="Gráfico de evolución de clicks por segundo" role="img">Tu navegador no admite gráficos canvas.</canvas>
+              <div class="chart-empty-state" id="chartEmptyState" aria-hidden="true">
+                <svg class="icon" viewBox="0 0 24 24"><use href="#icon-chart"></use></svg>
+                <span data-i18n="chart.empty">Tu ritmo aparecerá aquí</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="session-card glass-card reveal reveal--up" aria-labelledby="sessionTitle">
+            <header class="card-header">
+              <div>
+                <p class="section-kicker" data-i18n="session.kicker">ESTA SESIÓN</p>
+                <h2 id="sessionTitle" data-i18n="session.title">Tu rendimiento</h2>
+              </div>
+              <span class="session-badge" id="sessionBadge" data-i18n="session.badge">EN CALMA</span>
+            </header>
+            <dl class="session-stats">
+              <div>
+                <dt data-i18n="session.record">Récord de sesión</dt>
+                <dd><output class="odometer-value" id="sessionRecord">0.00</output><small>CPS</small></dd>
+              </div>
+              <div>
+                <dt data-i18n="session.maxSpeed">Velocidad máxima</dt>
+                <dd><output class="odometer-value" id="maxSpeed">0.00</output><small>CPS</small></dd>
+              </div>
+              <div>
+                <dt data-i18n="session.minSpeed">Velocidad mínima</dt>
+                <dd><output class="odometer-value" id="minSpeed">0.00</output><small>CPS</small></dd>
+              </div>
+            </dl>
+            <div class="session-level" aria-label="Nivel actual">
+              <div class="session-level__labels"><span data-i18n="session.level">Nivel</span><strong id="performanceLevel">Warm up</strong></div>
+              <div class="session-level__track" role="progressbar" id="performanceLevelBar" aria-label="Nivel de rendimiento" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span></span></div>
+            </div>
+          </article>
+
+          <article class="history-card glass-card reveal reveal--up" aria-labelledby="historyTitle">
+            <header class="card-header">
+              <div>
+                <p class="section-kicker" data-i18n="history.kicker">SECUENCIA</p>
+                <h2 id="historyTitle" data-i18n="history.title">Historial de clics</h2>
+              </div>
+              <span class="history-count"><output id="historyCount">0</output> <span data-i18n="history.events">eventos</span></span>
+            </header>
+            <div class="history-scroll" id="historyScroll" tabindex="0" aria-label="Lista de clicks recientes">
+              <ol class="click-history-list" id="clickHistory">
+                <li class="history-empty" id="clickHistoryEmpty"><span class="history-empty__pulse" aria-hidden="true"></span><span data-i18n="history.empty">Esperando el primer click…</span></li>
+              </ol>
+            </div>
+          </article>
+        </section>
+
+        <section class="recent-results glass-card reveal reveal--up" aria-labelledby="recentTitle">
+          <header class="card-header">
+            <div>
+              <p class="section-kicker" data-i18n="recent.kicker">GUARDADO LOCALMENTE</p>
+              <h2 id="recentTitle" data-i18n="recent.title">Últimos intentos</h2>
+            </div>
+            <button class="text-button" id="clearRecentResultsButton" type="button" disabled data-i18n="recent.clear">Limpiar historial</button>
+          </header>
+          <div class="recent-results__body">
+            <ol class="recent-results__list" id="recentResultsList">
+              <li class="recent-results__empty" id="recentResultsEmpty"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-trophy"></use></svg><span data-i18n="recent.empty">Tus resultados aparecerán aquí al completar un test.</span></li>
+            </ol>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <p><span>©</span> <span id="currentYear">2026</span> CPS Pulse</p>
+      <p data-i18n="footer.tagline">Hecho para perseguir el siguiente click.</p>
+    </footer>
+  </div>
+
+  <dialog class="modal settings-modal" id="settingsModal" aria-labelledby="settingsTitle">
+    <form class="modal__surface glass-card" id="settingsForm" method="dialog">
+      <header class="modal__header">
+        <div>
+          <p class="section-kicker" data-i18n="settings.kicker">PERSONALIZA TU ARENA</p>
+          <h2 id="settingsTitle" data-i18n="settings.title">Configuración</h2>
+        </div>
+        <button class="icon-button" id="closeSettingsButton" type="submit" value="cancel" aria-label="Cerrar configuración">
+          <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg>
+        </button>
+      </header>
+
+      <div class="modal__body settings-groups">
+        <fieldset class="setting-group">
+          <legend><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sun"></use></svg><span data-i18n="settings.appearance">Apariencia</span></legend>
+          <div class="theme-choice-grid" role="radiogroup" aria-label="Tema visual">
+            <label class="theme-choice">
+              <input type="radio" name="theme" value="dark" checked>
+              <span class="theme-choice__preview theme-choice__preview--dark" aria-hidden="true"></span>
+              <span data-i18n="settings.dark">Oscuro</span>
+            </label>
+            <label class="theme-choice">
+              <input type="radio" name="theme" value="light">
+              <span class="theme-choice__preview theme-choice__preview--light" aria-hidden="true"></span>
+              <span data-i18n="settings.light">Claro</span>
+            </label>
+          </div>
+          <label class="setting-row" for="reduceMotionToggle">
+            <span><strong data-i18n="settings.motion">Animaciones completas</strong><small data-i18n="settings.motionHelp">Reduce el movimiento si lo prefieres.</small></span>
+            <input class="switch-input" id="reduceMotionToggle" name="reduceMotion" type="checkbox" role="switch">
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
+          <label class="setting-row" for="particlesToggle">
+            <span><strong data-i18n="settings.particles">Partículas y efectos</strong><small data-i18n="settings.particlesHelp">Activa la respuesta visual en cada click.</small></span>
+            <input class="switch-input" id="particlesToggle" name="particles" type="checkbox" role="switch" checked>
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
+        </fieldset>
+
+        <fieldset class="setting-group">
+          <legend><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-volume"></use></svg><span data-i18n="settings.feedback">Respuesta</span></legend>
+          <label class="setting-row" for="soundSettingToggle">
+            <span><strong data-i18n="settings.sound">Sonidos</strong><small data-i18n="settings.soundHelp">Clicks, controles y nuevos récords.</small></span>
+            <input class="switch-input" id="soundSettingToggle" name="sound" type="checkbox" role="switch">
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
+          <label class="setting-row" for="hapticsToggle">
+            <span><strong data-i18n="settings.haptics">Vibración táctil</strong><small data-i18n="settings.hapticsHelp">Solo en dispositivos compatibles.</small></span>
+            <input class="switch-input" id="hapticsToggle" name="haptics" type="checkbox" role="switch" checked>
+            <span class="switch-ui" aria-hidden="true"></span>
+          </label>
+        </fieldset>
+
+        <fieldset class="setting-group">
+          <legend><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-sliders"></use></svg><span data-i18n="settings.defaults">Preferencias de test</span></legend>
+          <label class="select-setting" for="defaultDurationSelect">
+            <span data-i18n="settings.defaultDuration">Duración predeterminada</span>
+            <select id="defaultDurationSelect" name="defaultDuration">
+              <option value="1">1 segundo</option>
+              <option value="5" selected>5 segundos</option>
+              <option value="10">10 segundos</option>
+              <option value="15">15 segundos</option>
+              <option value="30">30 segundos</option>
+              <option value="60">60 segundos</option>
+              <option value="100">100 segundos</option>
+            </select>
+          </label>
+          <label class="select-setting" for="settingsLanguageSelect">
+            <span data-i18n="settings.language">Idioma</span>
+            <select id="settingsLanguageSelect" name="language">
+              <option value="es" selected>Español</option>
+              <option value="en">English</option>
+            </select>
+          </label>
+        </fieldset>
+
+        <fieldset class="setting-group setting-group--danger">
+          <legend data-i18n="settings.data">Datos locales</legend>
+          <p data-i18n="settings.dataHelp">Puedes eliminar tu récord, resultados y preferencias guardadas en este navegador.</p>
+          <button class="button button--danger button--small" id="resetStoredDataButton" type="button" data-i18n="settings.resetData">Restablecer datos</button>
+        </fieldset>
+      </div>
+
+      <footer class="modal__footer">
+        <button class="button button--ghost" type="submit" value="cancel" data-i18n="settings.cancel">Cancelar</button>
+        <button class="button button--primary" id="saveSettingsButton" type="submit" value="save"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-check"></use></svg><span data-i18n="settings.save">Guardar cambios</span></button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog class="modal results-modal" id="resultsModal" aria-labelledby="resultsTitle">
+    <section class="modal__surface glass-card">
+      <button class="icon-button results-close" id="closeResultsButton" type="button" aria-label="Cerrar resultados">
+        <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg>
+      </button>
+      <div class="results-hero" id="resultSummary">
+        <div class="results-confetti-anchor" id="resultsConfettiAnchor" aria-hidden="true"></div>
+        <div class="results-emblem" id="resultsEmblem" aria-hidden="true"><svg class="icon" viewBox="0 0 24 24"><use href="#icon-trophy"></use></svg></div>
+        <p class="eyebrow" id="resultsKicker" data-i18n="results.complete">TEST COMPLETADO</p>
+        <h2 id="resultsTitle" data-i18n="results.title">Tu pulso final</h2>
+        <output class="results-score odometer-value" id="resultCps">0.00</output>
+        <p class="results-score-label">CPS</p>
+        <p class="results-message" id="resultsMessage" data-i18n="results.defaultMessage">Cada click cuenta. ¿Listo para superar tu marca?</p>
+        <span class="new-record-badge" id="newRecordBadge" hidden><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-trophy"></use></svg><span data-i18n="results.newRecord">Nuevo récord personal</span></span>
+      </div>
+      <dl class="results-breakdown">
+        <div><dt data-i18n="results.clicks">Clicks totales</dt><dd><output id="resultClicks">0</output></dd></div>
+        <div><dt data-i18n="results.average">CPS promedio</dt><dd><output id="resultAverageCps">0.00</output></dd></div>
+        <div><dt data-i18n="results.peak">Pico de CPS</dt><dd><output id="resultPeakCps">0.00</output></dd></div>
+        <div><dt data-i18n="results.duration">Duración</dt><dd><output id="resultDuration">5</output> <small data-i18n="duration.seconds">seg</small></dd></div>
+      </dl>
+      <div class="results-actions">
+        <button class="button button--primary" id="resultRestartButton" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-restart"></use></svg><span data-i18n="results.again">Intentar de nuevo</span></button>
+        <button class="button button--secondary" id="shareBtn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-share"></use></svg><span data-i18n="results.share">Compartir</span></button>
+        <button class="button button--ghost" id="copyBtn" type="button"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-copy"></use></svg><span data-i18n="results.copy">Copiar</span></button>
+      </div>
+    </section>
+  </dialog>
+
+  <dialog class="modal keyboard-modal" id="keyboardHelpModal" aria-labelledby="keyboardTitle">
+    <section class="modal__surface glass-card">
+      <header class="modal__header">
+        <div>
+          <p class="section-kicker" data-i18n="keyboard.kicker">ACCESIBILIDAD</p>
+          <h2 id="keyboardTitle" data-i18n="keyboard.title">Atajos de teclado</h2>
+        </div>
+        <button class="icon-button" id="closeKeyboardHelpButton" type="button" aria-label="Cerrar atajos de teclado"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+      </header>
+      <ul class="shortcut-list">
+        <li><kbd>Espacio</kbd><span data-i18n="keyboard.space">Comenzar un test o hacer click durante un test.</span></li>
+        <li><kbd>R</kbd><span data-i18n="keyboard.restart">Reiniciar el test actual.</span></li>
+        <li><kbd>S</kbd><span data-i18n="keyboard.sound">Activar o desactivar sonido.</span></li>
+        <li><kbd>F</kbd><span data-i18n="keyboard.fullscreen">Alternar pantalla completa.</span></li>
+        <li><kbd>Esc</kbd><span data-i18n="keyboard.escape">Cerrar ventanas o detener el test.</span></li>
+      </ul>
+      <footer class="modal__footer"><button class="button button--primary" id="keyboardHelpDoneButton" type="button" data-i18n="keyboard.done">Entendido</button></footer>
+    </section>
+  </dialog>
+
+  <div class="toast-region" id="toastContainer" aria-live="polite" aria-atomic="true" aria-relevant="additions" aria-label="Notificaciones"></div>
+  <p class="sr-only" id="gameAnnouncer" aria-live="assertive" aria-atomic="true"></p>
+
+  <template id="toastTemplate">
+    <article class="toast toast--info" role="status">
+      <span class="toast__icon" aria-hidden="true"></span>
+      <div class="toast__content"><strong class="toast__title"></strong><p class="toast__message"></p></div>
+      <button class="toast__close" type="button" aria-label="Cerrar notificación"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#icon-close"></use></svg></button>
+    </article>
+  </template>
+
+  <template id="clickHistoryItemTemplate">
+    <li class="click-history-item">
+      <span class="click-history-item__pulse" aria-hidden="true"></span>
+      <time class="click-history-item__time"></time>
+      <span class="click-history-item__label">Click</span>
+      <strong class="click-history-item__cps"></strong>
+    </li>
+  </template>
+
+  <template id="recentResultTemplate">
+    <li class="recent-result-item">
+      <span class="recent-result-item__rank"></span>
+      <div class="recent-result-item__score"><strong></strong><small>CPS</small></div>
+      <div class="recent-result-item__meta"><span class="recent-result-item__clicks"></span><time class="recent-result-item__date"></time></div>
+      <span class="recent-result-item__duration"></span>
+    </li>
+  </template>
+
+  <audio id="soundClick" preload="auto" src="sounds/click.mp3"></audio>
+  <audio id="soundSuccess" preload="auto" src="sounds/success.mp3"></audio>
+  <audio id="soundFail" preload="auto" src="sounds/fail.mp3"></audio>
+  
+  <footer class="creator-footer">
+    <p>© 2026 <strong>k3rnel pan1c</strong>. Todos los derechos reservados.</p>
+
+    <a href="https://discord.com/users/1514288633555845151"
+       target="_blank"
+       class="discord-btn">
+        💬 Discord: @ejhq_
+    </a>
+</footer>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
