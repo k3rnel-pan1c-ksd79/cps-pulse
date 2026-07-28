@@ -11,15 +11,21 @@
     storageKey: 'cps-pulse:state:v1',
     sessionKey: 'cps-pulse:session-record:v1',
     durations: [1, 5, 10, 15, 30, 60, 100],
-    maxResults: 12,
+    maxResults: 30,
     maxHistoryItems: 18,
-    maxEffectParticles: 44,
-    sampleInterval: 110
+    maxEffectParticles: 30,
+    effectParticleBurst: 6,
+    maxConfettiPieces: 30,
+    sampleInterval: 120,
+    uiUpdateInterval: 50,
+    effectInterval: 72,
+    clickToneInterval: 45
   });
 
   const byId = (id) => document.getElementById(id);
   const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
   const hasDialogSupport = typeof HTMLDialogElement !== 'undefined';
+  const testModes = new Set(['left', 'right', 'space', 'jitter', 'butterfly', 'drag']);
 
   const dom = {
     root: document.documentElement,
@@ -31,6 +37,7 @@
     welcomeEnter: byId('welcomeEnter'),
     durationButtons: Array.from(document.querySelectorAll('[data-duration]')),
     durationSelect: byId('durationSelect'),
+    mode: byId('testModeSelect'),
     start: byId('startBtn'),
     restart: byId('restartBtn'),
     stop: byId('stopBtn'),
@@ -109,6 +116,18 @@
     cursorGlow: byId('cursorGlow'),
     announcer: byId('gameAnnouncer'),
     year: byId('currentYear'),
+    profileName: byId('profileNameValue'),
+    profileInitials: byId('profileInitials'),
+    profileSummary: byId('profileSummary'),
+    profileNameInput: byId('profileNameInput'),
+    profileTotalClicks: byId('profileTotalClicks'),
+    profileCompletedTests: byId('profileCompletedTests'),
+    bestSecond: byId('bestSecond'),
+    bestStreak: byId('bestStreak'),
+    achievements: byId('achievementsList'),
+    historyChart: byId('historyChart'),
+    historyChartEmpty: byId('historyChartEmpty'),
+    shareImage: byId('shareImageBtn'),
     themeColor: document.querySelector('meta[name="theme-color"]')
   };
 
@@ -381,6 +400,8 @@
   const defaults = Object.freeze({
     theme: 'dark',
     language: 'es',
+    profileName: 'Pulse Runner',
+    mode: 'left',
     sound: false,
     reduceMotion: window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches,
     particles: true,
@@ -388,8 +409,14 @@
     duration: 5,
     historicRecord: 0,
     results: [],
-    stats: { totalClicks: 0, completedTests: 0 }
+    achievements: [],
+    stats: { totalClicks: 0, completedTests: 0, bestSecond: 0, bestClickStreak: 0 }
   });
+
+  function sanitizeProfileName(value) {
+    const normalized = String(value || '').replace(/\s+/g, ' ').trim();
+    return normalized.slice(0, 26) || defaults.profileName;
+  }
 
   const readStoredData = () => {
     try {
@@ -403,15 +430,20 @@
         duration,
         theme: parsed.theme === 'light' ? 'light' : 'dark',
         language: parsed.language === 'en' ? 'en' : 'es',
+        profileName: sanitizeProfileName(parsed.profileName),
+        mode: testModes.has(parsed.mode) ? parsed.mode : defaults.mode,
         sound: Boolean(parsed.sound),
         reduceMotion: Boolean(parsed.reduceMotion),
         particles: parsed.particles !== false,
         haptics: parsed.haptics !== false,
         historicRecord: Number.isFinite(Number(parsed.historicRecord)) ? Number(parsed.historicRecord) : 0,
         results: Array.isArray(parsed.results) ? parsed.results.slice(0, CONFIG.maxResults).filter(isValidResult) : [],
+        achievements: Array.isArray(parsed.achievements) ? parsed.achievements.filter((achievement) => typeof achievement === 'string').slice(0, 12) : [],
         stats: {
-          totalClicks: Number(parsed.stats && parsed.stats.totalClicks) || 0,
-          completedTests: Number(parsed.stats && parsed.stats.completedTests) || 0
+          totalClicks: Math.max(0, Number(parsed.stats && parsed.stats.totalClicks) || 0),
+          completedTests: Math.max(0, Number(parsed.stats && parsed.stats.completedTests) || 0),
+          bestSecond: Math.max(0, Number(parsed.stats && parsed.stats.bestSecond) || 0),
+          bestClickStreak: Math.max(0, Number(parsed.stats && parsed.stats.bestClickStreak) || 0)
         }
       };
     } catch (error) {
@@ -434,7 +466,10 @@
     clickTimes: [],
     samples: [],
     lastSampleAt: 0,
+    lastUiAt: 0,
     lastClickAt: 0,
+    clickWindowStart: 0,
+    currentClickStreak: 0,
     currentCps: 0,
     averageCps: 0,
     peakCps: 0,
@@ -447,9 +482,14 @@
     lastActiveElement: null,
     audioContext: null,
     lastHoverTone: 0,
+    lastClickTone: 0,
+    lastEffectAt: 0,
     pointer: { x: window.innerWidth / 2, y: window.innerHeight / 2, queued: false },
     particleNodes: 0,
-    chartQueued: false
+    chartQueued: false,
+    tilt: { card: null, rect: null, x: 0, y: 0, queued: false },
+    drag: { active: false, nextAt: 0 },
+    pageHidden: document.hidden
   };
 
   let timerFrame = 0;
@@ -468,6 +508,8 @@
       window.localStorage.setItem(CONFIG.storageKey, JSON.stringify({
         theme: state.settings.theme,
         language: state.settings.language,
+        profileName: state.settings.profileName,
+        mode: state.settings.mode,
         sound: state.settings.sound,
         reduceMotion: state.settings.reduceMotion,
         particles: state.settings.particles,
@@ -475,6 +517,7 @@
         duration: state.settings.duration,
         historicRecord: state.settings.historicRecord,
         results: state.settings.results,
+        achievements: state.settings.achievements,
         stats: state.settings.stats
       }));
     } catch (error) {
@@ -519,10 +562,6 @@
     if (element.dataset.value === next) return;
     element.dataset.value = next;
     element.textContent = next;
-    element.classList.remove('is-updating');
-    // Reflow only the updated number to restart its small odometer animation.
-    void element.offsetWidth;
-    element.classList.add('is-updating');
   }
 
   function updateStaticLanguage() {
@@ -550,6 +589,8 @@
     if (dom.language) dom.language.value = language();
     if (dom.settingsLanguage) dom.settingsLanguage.value = language();
     if (dom.defaultDuration) dom.defaultDuration.value = String(state.settings.duration);
+    if (dom.mode) dom.mode.value = state.settings.mode;
+    if (dom.profileNameInput) dom.profileNameInput.value = state.settings.profileName;
 
     const defaultDurationOptions = dom.defaultDuration ? Array.from(dom.defaultDuration.options) : [];
     defaultDurationOptions.forEach((option) => {
@@ -598,6 +639,7 @@
     // Reformat all live numbers when the locale changes (for example 0,70 → 0.70).
     updateMetrics(true);
     renderRecentResults();
+    renderProgressSummary();
   }
 
   function applyTheme(theme, announce = false) {
@@ -623,6 +665,13 @@
       if (dom.particleField) dom.particleField.replaceChildren();
     } else {
       seedAmbientParticles();
+    }
+    if (state.settings.reduceMotion && state.tilt.card) {
+      state.tilt.card.classList.remove('is-tilting');
+      state.tilt.card.style.removeProperty('--tilt-x');
+      state.tilt.card.style.removeProperty('--tilt-y');
+      state.tilt.card = null;
+      state.tilt.rect = null;
     }
   }
 
@@ -660,6 +709,26 @@
     }
   }
 
+  function updateModeUI() {
+    if (dom.mode) {
+      dom.mode.value = state.settings.mode;
+      dom.mode.disabled = state.status === 'running';
+    }
+    if (dom.clickArea) {
+      dom.clickArea.dataset.mode = state.settings.mode;
+      const modeLabels = {
+        left: language() === 'es' ? 'clic izquierdo' : 'left click',
+        right: language() === 'es' ? 'clic derecho' : 'right click',
+        space: language() === 'es' ? 'barra espaciadora' : 'spacebar',
+        jitter: language() === 'es' ? 'jitter click' : 'jitter click',
+        butterfly: language() === 'es' ? 'butterfly click' : 'butterfly click',
+        drag: language() === 'es' ? 'drag click' : 'drag click'
+      };
+      const modeLabel = modeLabels[state.settings.mode] || modeLabels.left;
+      dom.clickArea.setAttribute('aria-label', language() === 'es' ? 'Área de test CPS: ' + modeLabel : 'CPS test area: ' + modeLabel);
+    }
+  }
+
   function updateControls() {
     const running = state.status === 'running';
     const finished = state.status === 'finished' || state.status === 'stopped';
@@ -672,9 +741,11 @@
     if (dom.clickArea) {
       dom.clickArea.disabled = !running;
       dom.clickArea.classList.toggle('is-running', running);
+      dom.clickArea.classList.toggle('is-active', running);
       dom.clickArea.classList.toggle('is-finished', finished);
     }
     updateDurationUI();
+    updateModeUI();
   }
 
   function updateStatusUI() {
@@ -726,7 +797,8 @@
       dom.currentCpsTrend.dataset.trend = trend === '↑' ? 'up' : trend === '↓' ? 'down' : 'flat';
     }
     const progress = durationMs ? (state.elapsed / durationMs) * 100 : 0;
-    if (dom.progressFill) dom.progressFill.style.width = clamp(progress, 0, 100) + '%';
+    if (dom.progressFill) dom.progressFill.style.setProperty('--progress-scale', String(clamp(progress, 0, 100) / 100));
+    if (dom.progress) dom.progress.style.setProperty('--progress', clamp(progress, 0, 100) + '%');
     if (dom.progress) dom.progress.setAttribute('aria-valuenow', String(Math.round(clamp(progress, 0, 100))));
     updatePerformanceLevel(state.status === 'finished' ? state.averageCps : Math.max(state.averageCps, state.currentCps));
     if (force) queueChartRender();
@@ -735,7 +807,14 @@
   function rollingCps(now) {
     if (!state.clickTimes.length || now <= 0) return 0;
     const windowStart = Math.max(0, now - 1000);
-    const events = state.clickTimes.filter((time) => time >= windowStart && time <= now).length;
+    while (state.clickWindowStart < state.clickTimes.length && state.clickTimes[state.clickWindowStart] < windowStart) {
+      state.clickWindowStart += 1;
+    }
+    const events = state.clickTimes.length - state.clickWindowStart;
+    if (state.clickWindowStart > 48 && state.clickWindowStart * 2 > state.clickTimes.length) {
+      state.clickTimes.splice(0, state.clickWindowStart);
+      state.clickWindowStart = 0;
+    }
     const denominator = Math.min(1000, Math.max(120, now - windowStart));
     return events / (denominator / 1000);
   }
@@ -750,7 +829,7 @@
       const percent = Math.round(normalized * 100);
       dom.performanceLevelBar.setAttribute('aria-valuenow', String(percent));
       const fill = dom.performanceLevelBar.querySelector('span');
-      if (fill) fill.style.width = percent + '%';
+      if (fill) fill.style.setProperty('--level-scale', String(percent / 100));
     }
   }
 
@@ -779,7 +858,10 @@
     state.clickTimes = [];
     state.samples = [];
     state.lastSampleAt = 0;
+    state.lastUiAt = 0;
     state.lastClickAt = 0;
+    state.clickWindowStart = 0;
+    state.currentClickStreak = 0;
     state.currentCps = 0;
     state.averageCps = 0;
     state.peakCps = 0;
@@ -803,6 +885,7 @@
     state.status = 'running';
     state.startAt = performance.now();
     state.lastSampleAt = 0;
+    state.lastUiAt = 0;
     state.runId += 1;
     updateStatusUI();
     updateControls();
@@ -823,7 +906,10 @@
       addSample(state.elapsed);
       state.lastSampleAt = state.elapsed;
     }
-    updateMetrics();
+    if (state.elapsed - state.lastUiAt >= CONFIG.uiUpdateInterval) {
+      state.lastUiAt = state.elapsed;
+      updateMetrics();
+    }
     if (state.elapsed >= durationMs) {
       finishTest(true);
       return;
@@ -856,12 +942,18 @@
         state.maxSpeed = Math.max(state.maxSpeed, speed);
         state.minSpeed = state.minSpeed === 0 ? speed : Math.min(state.minSpeed, speed);
       }
+      state.currentClickStreak = interval <= 360 ? state.currentClickStreak + 1 : 1;
+    } else {
+      state.currentClickStreak = 1;
     }
     state.lastClickAt = relative;
+    state.settings.stats.bestClickStreak = Math.max(state.settings.stats.bestClickStreak, state.currentClickStreak);
     state.elapsed = relative;
     addSample(relative);
+    state.settings.stats.bestSecond = Math.max(state.settings.stats.bestSecond, state.clickTimes.length - state.clickWindowStart);
     appendClickHistory(relative);
     createClickFeedback(event);
+    state.lastUiAt = relative;
     updateMetrics();
     playTone('click');
   }
@@ -896,8 +988,10 @@
       };
       state.settings.results.unshift(state.finalResult);
       state.settings.results = state.settings.results.slice(0, CONFIG.maxResults);
+      evaluateAchievements(state.finalResult);
       persistState();
       renderRecentResults();
+      renderProgressSummary();
     } else {
       state.finalResult = {
         cps: state.averageCps,
@@ -984,6 +1078,7 @@
         dom.recentResults.append(dom.recentResultsEmpty);
       }
       if (dom.clearRecentResults) dom.clearRecentResults.disabled = true;
+      queueChartRender();
       return;
     }
     if (dom.clearRecentResults) dom.clearRecentResults.disabled = false;
@@ -1015,6 +1110,99 @@
       if (result.newRecord) item.classList.add('is-record');
       dom.recentResults.append(fragment);
     });
+    queueChartRender();
+  }
+
+  const achievementDefinitions = Object.freeze([
+    {
+      id: 'first-run',
+      icon: '✦',
+      unlocked: () => state.settings.stats.completedTests >= 1,
+      es: ['Primer pulso', 'Completa tu primer test'],
+      en: ['First pulse', 'Complete your first test']
+    },
+    {
+      id: 'five-cps',
+      icon: '⚡',
+      unlocked: () => state.settings.historicRecord >= 5,
+      es: ['Ritmo eléctrico', 'Alcanza 5 CPS de promedio'],
+      en: ['Electric pace', 'Reach a 5 CPS average']
+    },
+    {
+      id: 'streak-ten',
+      icon: '🔥',
+      unlocked: () => state.settings.stats.bestClickStreak >= 10,
+      es: ['Racha viva', 'Encadena 10 clicks rápidos'],
+      en: ['On a roll', 'Chain 10 rapid clicks']
+    },
+    {
+      id: 'endurance',
+      icon: '◎',
+      unlocked: () => state.settings.results.some((result) => result.duration >= 60),
+      es: ['Fondo', 'Completa un test de 60 segundos'],
+      en: ['Endurance', 'Complete a 60-second test']
+    }
+  ]);
+
+  function achievementCopy(achievement) {
+    return achievement[language()] || achievement.es;
+  }
+
+  function evaluateAchievements() {
+    const unlocked = new Set(state.settings.achievements);
+    const newlyUnlocked = achievementDefinitions.filter((achievement) => achievement.unlocked() && !unlocked.has(achievement.id));
+    if (!newlyUnlocked.length) return;
+    newlyUnlocked.forEach((achievement) => unlocked.add(achievement.id));
+    state.settings.achievements = Array.from(unlocked);
+    const [title] = achievementCopy(newlyUnlocked[0]);
+    toast((language() === 'es' ? 'Logro desbloqueado: ' : 'Achievement unlocked: ') + title, 'success', 4200);
+  }
+
+  function renderProgressSummary() {
+    const stats = state.settings.stats;
+    const profileName = sanitizeProfileName(state.settings.profileName);
+    if (dom.profileName) setText(dom.profileName, profileName);
+    if (dom.profileInitials) {
+      const initials = profileName.split(' ').map((part) => part.charAt(0)).join('').slice(0, 2).toUpperCase();
+      setText(dom.profileInitials, initials || 'CP');
+    }
+    if (dom.profileSummary) {
+      const summary = language() === 'es'
+        ? stats.completedTests + ' tests completados · récord de ' + formatNumber(state.settings.historicRecord, 2) + ' CPS'
+        : stats.completedTests + ' completed tests · ' + formatNumber(state.settings.historicRecord, 2) + ' CPS record';
+      setText(dom.profileSummary, summary);
+    }
+    setMetric(dom.profileTotalClicks, stats.totalClicks, 0);
+    setMetric(dom.profileCompletedTests, stats.completedTests, 0);
+    setMetric(dom.bestSecond, stats.bestSecond, 0);
+    setMetric(dom.bestStreak, stats.bestClickStreak, 0);
+    renderAchievements();
+  }
+
+  function renderAchievements() {
+    if (!dom.achievements) return;
+    const unlocked = new Set(state.settings.achievements);
+    const fragment = document.createDocumentFragment();
+    achievementDefinitions.forEach((achievement) => {
+      const [title, description] = achievementCopy(achievement);
+      const item = document.createElement('li');
+      const isUnlocked = unlocked.has(achievement.id);
+      item.className = 'achievement-item' + (isUnlocked ? ' is-unlocked' : '');
+      const icon = document.createElement('span');
+      icon.className = 'achievement-item__icon';
+      icon.setAttribute('aria-hidden', 'true');
+      icon.textContent = achievement.icon;
+      const copy = document.createElement('span');
+      copy.className = 'achievement-item__copy';
+      const heading = document.createElement('strong');
+      heading.textContent = title;
+      const detail = document.createElement('small');
+      detail.textContent = description;
+      copy.append(heading, detail);
+      item.append(icon, copy);
+      fragment.append(item);
+    });
+    dom.achievements.replaceChildren(fragment);
   }
 
   function showResults(result) {
@@ -1091,17 +1279,101 @@
     }
   }
 
+  async function shareResultImage() {
+    const result = state.finalResult;
+    if (!result) {
+      toast(label('noResult'), 'warning');
+      return;
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 1200;
+    canvas.height = 630;
+    const context = canvas.getContext('2d');
+    if (!context) {
+      toast(label('copyFailed'), 'warning');
+      return;
+    }
+    const background = context.createLinearGradient(0, 0, canvas.width, canvas.height);
+    background.addColorStop(0, '#171038');
+    background.addColorStop(0.52, '#171c41');
+    background.addColorStop(1, '#062a3b');
+    context.fillStyle = background;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    const glow = context.createRadialGradient(930, 130, 10, 930, 130, 420);
+    glow.addColorStop(0, 'rgba(104, 231, 255, 0.28)');
+    glow.addColorStop(1, 'rgba(104, 231, 255, 0)');
+    context.fillStyle = glow;
+    context.fillRect(0, 0, canvas.width, canvas.height);
+    context.fillStyle = '#75efff';
+    context.font = '700 34px system-ui, sans-serif';
+    context.fillText('CPS PULSE', 82, 104);
+    context.fillStyle = 'rgba(232, 239, 255, 0.72)';
+    context.font = '500 28px system-ui, sans-serif';
+    context.fillText(language() === 'es' ? 'Resultado de ' + sanitizeProfileName(state.settings.profileName) : sanitizeProfileName(state.settings.profileName) + "'s result", 82, 152);
+    context.fillStyle = '#ffffff';
+    context.font = '800 188px system-ui, sans-serif';
+    context.fillText(formatNumber(result.cps, 2), 76, 366);
+    context.fillStyle = '#b9c4e5';
+    context.font = '700 36px system-ui, sans-serif';
+    context.fillText('CPS', 83, 418);
+    const details = [
+      [language() === 'es' ? 'CLICKS' : 'CLICKS', String(result.clicks)],
+      [language() === 'es' ? 'PICO' : 'PEAK', formatNumber(result.peak, 2)],
+      [language() === 'es' ? 'DURACIÓN' : 'DURATION', String(result.duration) + 's']
+    ];
+    details.forEach(([title, value], index) => {
+      const x = 82 + index * 330;
+      context.fillStyle = 'rgba(255, 255, 255, 0.08)';
+      context.fillRect(x, 475, 282, 94);
+      context.fillStyle = '#9da9ca';
+      context.font = '700 21px system-ui, sans-serif';
+      context.fillText(title, x + 20, 510);
+      context.fillStyle = '#ffffff';
+      context.font = '800 38px system-ui, sans-serif';
+      context.fillText(value, x + 20, 552);
+    });
+    const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
+    if (!blob) {
+      toast(label('copyFailed'), 'warning');
+      return;
+    }
+    const file = new File([blob], 'cps-pulse-' + Date.now() + '.png', { type: 'image/png' });
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [file] }) && navigator.share) {
+        await navigator.share({ files: [file], title: 'CPS Pulse', text: resultText() });
+        toast(label('shared'), 'success');
+        return;
+      }
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = file.name;
+      link.click();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1200);
+      toast(language() === 'es' ? 'Imagen lista para compartir' : 'Image ready to share', 'success');
+    } catch (error) {
+      if (error && error.name !== 'AbortError') toast(label('copyFailed'), 'warning');
+    }
+  }
+
   function createClickFeedback(event) {
     if (!dom.clickArea) return;
+    const now = performance.now();
     const rect = dom.clickArea.getBoundingClientRect();
     const x = event && Number.isFinite(event.clientX) ? event.clientX - rect.left : rect.width / 2;
     const y = event && Number.isFinite(event.clientY) ? event.clientY - rect.top : rect.height / 2;
     dom.clickArea.style.setProperty('--click-x', clamp(x, 0, rect.width) + 'px');
     dom.clickArea.style.setProperty('--click-y', clamp(y, 0, rect.height) + 'px');
-    dom.clickArea.classList.remove('is-clicked');
-    void dom.clickArea.offsetWidth;
-    dom.clickArea.classList.add('is-clicked');
-    window.setTimeout(() => dom.clickArea && dom.clickArea.classList.remove('is-clicked'), 210);
+    if (now - state.lastEffectAt < CONFIG.effectInterval) return;
+    state.lastEffectAt = now;
+    if (!state.settings.reduceMotion && typeof dom.clickArea.animate === 'function') {
+      dom.clickArea.animate([
+        { transform: 'scale(1)' },
+        { transform: 'scale(0.978)', offset: 0.34 },
+        { transform: 'scale(1.006)', offset: 0.72 },
+        { transform: 'scale(1)' }
+      ], { duration: 240, easing: 'cubic-bezier(0.2, 1.2, 0.4, 1)' });
+    }
     if (state.settings.particles && !state.settings.reduceMotion) {
       createRipple(x, y);
       createEffectParticles(x, y);
@@ -1121,7 +1393,7 @@
 
   function createEffectParticles(x, y) {
     if (!dom.clickEffects || state.particleNodes >= CONFIG.maxEffectParticles) return;
-    const amount = 8;
+    const amount = CONFIG.effectParticleBurst;
     for (let index = 0; index < amount; index += 1) {
       const particle = document.createElement('span');
       const angle = (Math.PI * 2 * index) / amount + Math.random() * 0.35;
@@ -1159,7 +1431,7 @@
     const anchor = byId('resultsConfettiAnchor') || dom.clickStage;
     if (!anchor || state.settings.reduceMotion) return;
     const colors = ['#68e7ff', '#b986ff', '#ff5cce', '#ffe26f', '#91ffb6'];
-    for (let index = 0; index < 42; index += 1) {
+    for (let index = 0; index < CONFIG.maxConfettiPieces; index += 1) {
       const piece = document.createElement('span');
       const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.95;
       const travel = 90 + Math.random() * 190;
@@ -1193,38 +1465,47 @@
 
   function updateCursor(event) {
     if (event.pointerType === 'touch') return;
+    dom.body.classList.add('has-pointer');
     state.pointer.x = event.clientX;
     state.pointer.y = event.clientY;
+    queueTilt(event);
     if (state.pointer.queued) return;
     state.pointer.queued = true;
     cursorFrame = requestAnimationFrame(() => {
       state.pointer.queued = false;
-      dom.root.style.setProperty('--mouse-x', state.pointer.x + 'px');
-      dom.root.style.setProperty('--mouse-y', state.pointer.y + 'px');
       if (dom.cursorGlow) {
         dom.cursorGlow.style.transform = 'translate3d(' + state.pointer.x + 'px, ' + state.pointer.y + 'px, 0) translate(-50%, -50%)';
       }
     });
   }
 
-  function attachTilt() {
-    if (state.settings.reduceMotion) return;
-    const cards = document.querySelectorAll('.glass-card');
-    cards.forEach((card) => {
-      card.addEventListener('pointermove', (event) => {
-        if (event.pointerType === 'touch' || state.settings.reduceMotion) return;
-        const rect = card.getBoundingClientRect();
-        const x = (event.clientX - rect.left) / rect.width;
-        const y = (event.clientY - rect.top) / rect.height;
-        card.style.setProperty('--tilt-x', ((0.5 - y) * 3.2).toFixed(2) + 'deg');
-        card.style.setProperty('--tilt-y', ((x - 0.5) * 3.2).toFixed(2) + 'deg');
-        card.style.setProperty('--shine-x', (x * 100).toFixed(1) + '%');
-        card.style.setProperty('--shine-y', (y * 100).toFixed(1) + '%');
-      }, { passive: true });
-      card.addEventListener('pointerleave', () => {
-        card.style.removeProperty('--tilt-x');
-        card.style.removeProperty('--tilt-y');
-      });
+  function queueTilt(event) {
+    if (state.settings.reduceMotion || !window.matchMedia('(hover: hover) and (pointer: fine)').matches) return;
+    const target = event.target instanceof Element ? event.target.closest('.glass-card') : null;
+    if (target !== state.tilt.card) {
+      if (state.tilt.card) {
+        state.tilt.card.classList.remove('is-tilting');
+        state.tilt.card.style.removeProperty('--tilt-x');
+        state.tilt.card.style.removeProperty('--tilt-y');
+      }
+      state.tilt.card = target;
+      state.tilt.rect = target ? target.getBoundingClientRect() : null;
+      if (target) target.classList.add('is-tilting');
+    }
+    if (!state.tilt.card || !state.tilt.rect) return;
+    state.tilt.x = event.clientX;
+    state.tilt.y = event.clientY;
+    if (state.tilt.queued) return;
+    state.tilt.queued = true;
+    requestAnimationFrame(() => {
+      state.tilt.queued = false;
+      const card = state.tilt.card;
+      const rect = state.tilt.rect;
+      if (!card || !rect) return;
+      const x = clamp((state.tilt.x - rect.left) / rect.width, 0, 1);
+      const y = clamp((state.tilt.y - rect.top) / rect.height, 0, 1);
+      card.style.setProperty('--tilt-x', ((0.5 - y) * 2.4).toFixed(2) + 'deg');
+      card.style.setProperty('--tilt-y', ((x - 0.5) * 2.4).toFixed(2) + 'deg');
     });
   }
 
@@ -1250,6 +1531,7 @@
     requestAnimationFrame(() => {
       state.chartQueued = false;
       renderChart();
+      renderHistoryChart();
     });
   }
 
@@ -1336,6 +1618,80 @@
     context.fillText(formatNumber(peak, 0), 2, padding.top + 8);
   }
 
+  function renderHistoryChart() {
+    const canvas = dom.historyChart;
+    if (!canvas || !canvas.getContext) return;
+    const results = state.settings.results.slice(0, 12).reverse();
+    if (dom.historyChartEmpty) dom.historyChartEmpty.hidden = results.length < 2;
+    const rect = canvas.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
+    const ratio = Math.min(window.devicePixelRatio || 1, 2);
+    const width = Math.floor(rect.width * ratio);
+    const height = Math.floor(rect.height * ratio);
+    if (canvas.width !== width || canvas.height !== height) {
+      canvas.width = width;
+      canvas.height = height;
+    }
+    const context = canvas.getContext('2d');
+    context.setTransform(ratio, 0, 0, ratio, 0, 0);
+    context.clearRect(0, 0, rect.width, rect.height);
+    if (results.length < 2) return;
+    const styles = getComputedStyle(dom.root);
+    const cyan = styles.getPropertyValue('--accent-cyan').trim() || '#68e7ff';
+    const violet = styles.getPropertyValue('--accent-violet').trim() || '#b986ff';
+    const grid = styles.getPropertyValue('--chart-grid').trim() || 'rgba(146, 167, 255, 0.13)';
+    const padding = { top: 14, right: 12, bottom: 14, left: 12 };
+    const drawWidth = rect.width - padding.left - padding.right;
+    const drawHeight = rect.height - padding.top - padding.bottom;
+    const peak = Math.max(4, ...results.map((result) => Number(result.cps) || 0)) * 1.15;
+    const point = (result, index) => ({
+      x: padding.left + (index / (results.length - 1)) * drawWidth,
+      y: padding.top + drawHeight - clamp((Number(result.cps) || 0) / peak, 0, 1) * drawHeight
+    });
+    context.strokeStyle = grid;
+    context.lineWidth = 1;
+    for (let line = 1; line < 4; line += 1) {
+      const y = padding.top + (drawHeight * line) / 4;
+      context.beginPath();
+      context.moveTo(padding.left, y);
+      context.lineTo(rect.width - padding.right, y);
+      context.stroke();
+    }
+    const first = point(results[0], 0);
+    const fill = context.createLinearGradient(0, padding.top, 0, padding.top + drawHeight);
+    fill.addColorStop(0, 'rgba(185, 134, 255, 0.28)');
+    fill.addColorStop(1, 'rgba(185, 134, 255, 0)');
+    context.beginPath();
+    context.moveTo(first.x, padding.top + drawHeight);
+    results.forEach((result, index) => {
+      const current = point(result, index);
+      context.lineTo(current.x, current.y);
+    });
+    const last = point(results[results.length - 1], results.length - 1);
+    context.lineTo(last.x, padding.top + drawHeight);
+    context.closePath();
+    context.fillStyle = fill;
+    context.fill();
+    context.beginPath();
+    results.forEach((result, index) => {
+      const current = point(result, index);
+      if (!index) context.moveTo(current.x, current.y);
+      else context.lineTo(current.x, current.y);
+    });
+    const stroke = context.createLinearGradient(padding.left, 0, rect.width - padding.right, 0);
+    stroke.addColorStop(0, violet);
+    stroke.addColorStop(1, cyan);
+    context.strokeStyle = stroke;
+    context.lineCap = 'round';
+    context.lineJoin = 'round';
+    context.lineWidth = 2.2;
+    context.stroke();
+    context.fillStyle = cyan;
+    context.beginPath();
+    context.arc(last.x, last.y, 3.4, 0, Math.PI * 2);
+    context.fill();
+  }
+
   function toast(message, type = 'info', timeout = 3600) {
     if (!dom.toastContainer) return;
     const fragment = dom.toastTemplate && dom.toastTemplate.content
@@ -1416,6 +1772,11 @@
 
   function playTone(kind) {
     if (!state.settings.sound) return;
+    const requestedAt = performance.now();
+    if (kind === 'click') {
+      if (requestedAt - state.lastClickTone < CONFIG.clickToneInterval) return;
+      state.lastClickTone = requestedAt;
+    }
     const audio = getAudioContext();
     if (!audio) return;
     if (audio.state === 'suspended') audio.resume().catch(() => {});
@@ -1443,6 +1804,12 @@
     oscillator.connect(gain).connect(audio.destination);
     oscillator.start(now);
     oscillator.stop(now + spec[1] + 0.02);
+  }
+
+  function releaseAudio() {
+    if (!state.audioContext || state.audioContext.state === 'closed') return;
+    state.audioContext.close().catch(() => {});
+    state.audioContext = null;
   }
 
   function handleFullscreen() {
@@ -1539,9 +1906,27 @@
     if (dom.stop) dom.stop.addEventListener('click', stopTest);
     if (dom.clickArea) {
       dom.clickArea.addEventListener('pointerdown', (event) => {
-        if (event.button !== undefined && event.button !== 0) return;
+        if (!acceptsPointerInput(event)) return;
         event.preventDefault();
+        if (state.settings.mode === 'drag') {
+          state.drag.active = true;
+          state.drag.nextAt = performance.now() + 52;
+          dom.clickArea.setPointerCapture?.(event.pointerId);
+        }
         registerClick(event);
+      });
+      dom.clickArea.addEventListener('pointermove', (event) => {
+        if (state.status !== 'running' || state.settings.mode !== 'drag' || !state.drag.active || !(event.buttons & 1)) return;
+        const now = performance.now();
+        if (now < state.drag.nextAt) return;
+        state.drag.nextAt = now + 52;
+        registerClick(event);
+      }, { passive: true });
+      ['pointerup', 'pointercancel', 'lostpointercapture'].forEach((eventName) => {
+        dom.clickArea.addEventListener(eventName, () => { state.drag.active = false; });
+      });
+      dom.clickArea.addEventListener('contextmenu', (event) => {
+        if (state.status === 'running' && (state.settings.mode === 'right' || state.settings.mode === 'butterfly')) event.preventDefault();
       });
     }
     if (dom.theme) dom.theme.addEventListener('click', () => {
@@ -1562,6 +1947,14 @@
       syncSettingsForm();
       persistState();
       queueChartRender();
+    });
+    if (dom.mode) dom.mode.addEventListener('change', (event) => {
+      const mode = event.target.value;
+      if (!testModes.has(mode) || state.status === 'running') return;
+      state.settings.mode = mode;
+      updateModeUI();
+      persistState();
+      playTone('button');
     });
     if (dom.fullscreen) dom.fullscreen.addEventListener('click', toggleFullscreen);
     if (dom.settings) dom.settings.addEventListener('click', () => {
@@ -1601,6 +1994,8 @@
     document.addEventListener('fullscreenchange', handleFullscreen);
     window.addEventListener('resize', queueChartRender, { passive: true });
     window.addEventListener('keydown', handleKeyboard);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pagehide', releaseAudio, { once: true });
     document.querySelectorAll('button, select, .duration-option').forEach((control) => {
       control.addEventListener('pointerenter', () => {
         const now = performance.now();
@@ -1610,6 +2005,21 @@
         }
       }, { passive: true });
     });
+  }
+
+  function acceptsPointerInput(event) {
+    if (state.status !== 'running') return false;
+    const button = Number.isFinite(event.button) ? event.button : 0;
+    if (state.settings.mode === 'right') return button === 2;
+    if (state.settings.mode === 'butterfly') return button === 0 || button === 2;
+    if (state.settings.mode === 'space') return false;
+    return button === 0;
+  }
+
+  function handleVisibilityChange() {
+    state.pageHidden = document.hidden;
+    dom.body.classList.toggle('is-page-hidden', state.pageHidden);
+    if (state.pageHidden) state.drag.active = false;
   }
 
   function handleKeyboard(event) {
@@ -1634,12 +2044,23 @@
       return;
     }
     if (event.key === ' ' || event.code === 'Space') {
-      event.preventDefault();
-      if (dom.welcome && !dom.welcome.hidden) hideWelcome();
-      else if (state.status === 'running') registerClick({ clientX: window.innerWidth / 2, clientY: window.innerHeight / 2 });
-      else startTest();
-      return;
-    }
+  if (event.repeat) return;
+
+  event.preventDefault();
+
+  if (dom.welcome && !dom.welcome.hidden) {
+    hideWelcome();
+  } else if (state.status === 'running') {
+    registerClick({
+      clientX: window.innerWidth / 2,
+      clientY: window.innerHeight / 2
+    });
+  } else {
+    startTest();
+  }
+
+  return;
+}
     if (event.repeat) return;
     if (event.key.toLowerCase() === 'r') restartTest();
     if (event.key.toLowerCase() === 's') {
@@ -1680,7 +2101,6 @@
     resetRun(false);
     renderRecentResults();
     seedAmbientParticles();
-    attachTilt();
     setupReveal();
     bindEvents();
     handleFullscreen();

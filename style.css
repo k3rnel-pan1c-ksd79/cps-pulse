@@ -1535,6 +1535,7 @@ header.topbar.is-condensed {
   box-shadow: 0 0 16px rgba(34, 211, 238, 0.55), inset 0 0 16px rgba(139, 92, 246, 0.2);
   opacity: 0;
   transform: translate(-50%, -50%) scale(0.15);
+ will-change: transform, opacity;
   animation: clickRipple 750ms var(--ease-out) forwards;
   pointer-events: none;
 }
@@ -3157,6 +3158,7 @@ footer {
   filter: blur(8px);
   opacity: 0;
   transform: translate3d(calc(var(--cursor-x, -500px) - 50%), calc(var(--cursor-y, -500px) - 50%), 0);
+ will-change: transform;
   transition: opacity 320ms ease;
   pointer-events: none;
 }
@@ -3965,7 +3967,7 @@ kbd {
 /* Insights: analysis, session state and chronology. */
 .insights-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1.32fr) minmax(255px, 0.68fr) minmax(260px, 0.75fr);
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.9fr) minmax(260px, 0.75fr);
   gap: 20px;
   align-items: stretch;
 }
@@ -3981,6 +3983,7 @@ kbd {
 .session-card {
   position: relative;
   overflow: hidden;
+ width: 300px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: linear-gradient(145deg, rgba(139, 92, 246, 0.11), rgba(255, 255, 255, 0.025)), var(--surface);
@@ -5178,4 +5181,18 @@ body.reduce-motion *::after {
   .click-pad__hint { bottom: 12px; }
   .results-hero { padding-inline: 18px; }
   .results-actions .button { min-width: 0; }
+}
+.insights-grid {
+    display: grid;
+    grid-template-columns: 1fr 300px;
+    gap: 20px;
+}
+
+.chart-card {
+    grid-column: 1;
+}
+
+.session-card,
+.history-card {
+    grid-column: 2;
 }
