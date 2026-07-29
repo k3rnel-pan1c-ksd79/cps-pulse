@@ -5196,3 +5196,45 @@ body.reduce-motion *::after {
 .history-card {
     grid-column: 2;
 }
+@media (max-width: 768px) {
+
+  html {
+    font-size: 17px;
+  }
+
+  .dashboard-heading h1 {
+    font-size: clamp(2rem, 8vw, 3rem);
+  }
+
+  .dashboard-heading p {
+    font-size: 1rem;
+  }
+
+  .button {
+    min-height: 52px;
+    font-size: 1rem;
+  }
+
+  .metric-value,
+  .click-pad__count,
+  .results-score {
+    font-size: clamp(3rem, 15vw, 5rem);
+  }
+
+  .metric-label,
+  .results-breakdown dt,
+  .setting-row small {
+    font-size: 0.85rem;
+  }
+
+  .glass-card {
+    padding: 20px;
+  }
+
+  .session-card,
+  .chart-card,
+  .history-card {
+    width: 100%;
+    min-width: 0;
+  }
+}
